@@ -18,53 +18,53 @@
 // example plugins. No copyright is claimed for these or the API extracts.
 //
 
-import QtQuick 2.9
-import QtQuick.Controls 1.4
-import QtQuick.Layouts 1.3
-import QtQuick.Dialogs 1.2
-import Qt.labs.settings 1.0
+import QtQuick 2.9;
+import QtQuick.Controls 1.4;
+import QtQuick.Layouts 1.3;
+import QtQuick.Dialogs 1.2;
+import Qt.labs.settings 1.0;
 // FileDialog
-import Qt.labs.folderlistmodel 2.2
-import QtQml 2.8
-import MuseScore 3.0
-import FileIO 3.0
+import Qt.labs.folderlistmodel 2.2;
+import QtQml 2.8;
+import MuseScore 3.0;
+import FileIO 3.0;
 
 MuseScore {
-	description: "Export to FrapTools Usta Sequencer"
-	menuPath: "Plugins." + "Frap Usta Export"
-	version: "1.0"
+	description: "Export to FrapTools Usta Sequencer";
+	menuPath: "Plugins." + "Frap Usta Export";
+	version: "1.0";
 	requiresScore: true;
-	pluginType: "dialog"
-	id: window
-	width: 800
-	height: 200
+	pluginType: "dialog";
+	id: window;
+	width: 800;
+	height: 200;
 
-	property int buttonWidth: 80
-	property int smallWidth: 150
-	property int mediumWidth: 300
-	property int bigWidth: 500
-	property int stdHeight: 24
-	property int bigHeight: 45
-	property int fontTitleSize: 16
-	property int fontSize: 12
-	property string crlf: "\r\n"
-	property var patternDict: []
+	property int buttonWidth: 80;
+	property int smallWidth: 150;
+	property int mediumWidth: 300;
+	property int bigWidth: 500;
+	property int stdHeight: 24;
+	property int bigHeight: 45;
+	property int fontTitleSize: 16;
+	property int fontSize: 12;
+	property string crlf: "\r\n";
+	property var patternDict: [];
 	property var patterns: ["T0_CVA_values", "T0_CVB_values", "T0_CVA_var_mode_len", "T0_CVB_var_mode",
 	"T0_GTA", "T0_GTB", "T1_CVA_values", "T1_CVB_values", "T1_CVA_var_mode_len", "T1_CVB_var_mode",
 	"T1_GTA", "T1_GTB", "T2_CVA_values", "T2_CVB_values", "T2_CVA_var_mode_len", "T2_CVB_var_mode",
 	"T2_GTA", "T2_GTB", "T3_CVA_values", "T3_CVB_values", "T3_CVA_var_mode_len", "T3_CVB_var_mode",
-	"T3_GTA", "T3_GTB"]
-	property var patternsPerMeasure: [1, 1, 1, 1, 1, 1, 1, 1]
-	property var maxVoiceId: 0
-	property var voiceLimit: 1
-	property var maxStaffId: 0
-	property var staffLimit: 3
-	property var staffMerge: 0
-	property var tempoBPM: [0, 0, 0, 0]
+	"T3_GTA", "T3_GTB"];
+	property var patternsPerMeasure: [1, 1, 1, 1, 1, 1, 1, 1];
+	property var maxVoiceId: 0;
+	property var voiceLimit: 1;
+	property var maxStaffId: 0;
+	property var staffLimit: 3;
+	property var staffMerge: 0;
+	property var tempoBPM: [0, 0, 0, 0];
 	// MIDI note 0 is C-2@8.176Hz
 	// Usta has a pitch range starting with 0V named either C0 or A0, negative CV values are not supported for pitch
 	// to match the MuseScore note values with the Usta range, we ignore the two lowest octaves and shift the MIDI note values 24 semitones down.
-	property var midiShift: 24
+	property var midiShift: 24;
 
 	// buildMeasureMap() calculates the metrics of the score into the map dict structure
 	// to provide some context in further passes through the score
@@ -103,7 +103,7 @@ MuseScore {
 			// the first (global) BPM setting is populated as default, all other
 			// settings are stored for the respective save index, allowing for
 			// different tempo settings for the four Usta tracks.
-		  var segment = m.firstSegment
+		  var segment = m.firstSegment;
 			while ((segment != null) && (segment.segmentType != Segment.ChordRest)) {
 				// console.log('Walking through segments, looking for first chord or rest');
 				segment = segment.nextInMeasure;
@@ -456,63 +456,63 @@ MuseScore {
 
 	// dirname() takes a path/filename and returns the path part
 	function dirname(p) {
-        	return (p.slice(0,p.lastIndexOf("/")+1))
+        	return (p.slice(0,p.lastIndexOf("/")+1));
     	}
 
 	// QT message dialog
 	MessageDialog {
-		id: errorDialog
-		visible: false
-		title: qsTr("Error")
-		text: "Error"
+		id: errorDialog;
+		visible: false;
+		title: qsTr("Error");
+		text: "Error";
 		onAccepted: {
-			close()
+			close();
 		}
 
 		function openErrorDialog(message) {
-			text = message
-			open()
+			text = message;
+			open();
 		}
 	}
 
 	// QT message dialog
 	MessageDialog {
-		id: endDialog
-		visible: false
-		title: qsTr("Conversion performed")
-		text: "Score has been successfully converted to USTA format." + crlf + "Resulting file: " + textFieldFilePath.text + "/" + textFieldFileName.text + crlf + crlf
+		id: endDialog;
+		visible: false;
+		title: qsTr("Conversion performed");
+		text: "Score has been successfully converted to USTA format." + crlf + "Resulting file: " + textFieldFilePath.text + "/" + textFieldFileName.text + crlf + crlf;
 		onAccepted: {
-			Qt.quit()
+			Qt.quit();
 		}
 
 		function openEndDialog(message) {
-			text = message
-			open()
+			text = message;
+			open();
 		}
 	}
 
 	// QT message dialog
 	FileDialog {
-		id: directorySelectDialog
-		title: qsTr("Please choose a directory")
-		selectFolder: true
-		visible: false
+		id: directorySelectDialog;
+		title: qsTr("Please choose a directory");
+		selectFolder: true;
+		visible: false;
 		onAccepted: {
-			var exportDirectory = this.folder.toString().replace("file://", "").replace(/^\/(.:\/)(.*)$/, "$1$2")
-			console.log("Selected directory: " + exportDirectory)
-			textFieldFilePath.text = exportDirectory
-			close()
+			var exportDirectory = this.folder.toString().replace("file://", "").replace(/^\/(.:\/)(.*)$/, "$1$2");
+			console.log("Selected directory: " + exportDirectory);
+			textFieldFilePath.text = exportDirectory;
+			close();
 		}
 		onRejected: {
-			console.log("Directory not selected")
-			close()
+			console.log("Directory not selected");
+			close();
 		}
 	}
 
 	// FileIO is the QT object which handles all the heavy lifting
 	FileIO {
-		id: csvWriter
-		onError: console.log(msg + "  Filename = " + csvWriter.source)
+		id: csvWriter;
+		onError: console.log(msg + "  Filename = " + csvWriter.source);
 	}
 
 	// createCSV() is the actual export method in which the usta sequencer project
@@ -522,96 +522,96 @@ MuseScore {
 	function createCSV() {
 
 		if (!textFieldFileName.text) {
-			errorDialog.openErrorDialog(qsTr("File name not specified"))
-			return
+			errorDialog.openErrorDialog(qsTr("File name not specified"));
+			return;
 		} else if (!textFieldFilePath.text) {
-			errorDialog.openErrorDialog(qsTr("File folder not specified"))
-			return
+			errorDialog.openErrorDialog(qsTr("File folder not specified"));
+			return;
 		}
 		if (textFieldFileName.text == ".UST")
-			textFieldFileName.text = "SCORE.UST"
-		var csv = ""
+			textFieldFileName.text = "SCORE.UST";
+		var csv = "";
 
-		csv += createSongs()
-		csv += createPerTrackSettings()
-		csv += dumpPatterns()
-		csv += createGlobalSettings()
-		var filename = textFieldFilePath.text + "/" + textFieldFileName.text
-		console.log("export to " + filename)
-		csvWriter.source = filename
-		console.log("writing csv...")
-		csvWriter.write(csv)
-		console.log("conversion performed")
-		endDialog.open()
+		csv += createSongs();
+		csv += createPerTrackSettings();
+		csv += dumpPatterns();
+		csv += createGlobalSettings();
+		var filename = textFieldFilePath.text + "/" + textFieldFileName.text;
+		console.log("export to " + filename);
+		csvWriter.source = filename;
+		console.log("writing csv...");
+		csvWriter.write(csv);
+		console.log("conversion performed");
+		endDialog.open();
 	}
 
 	// createSongs() is generating four lines of default (empty) song structures
 	// we may want to add some more features here in the future
 	// a random song generator may be interesting
 	function createSongs() {
-		console.log("compiling the Song section...")
-		var song = ""
+		console.log("compiling the Song section...");
+		var song = "";
 		for (var s = 0; s < 4; s++) {
 		    for (var i = 0; i < 130; i++) {
 			if (i == 65)
-				song += "1;"
+				song += "1;";
 			else
-				song += "0;"
+				song += "0;";
 		    }
-		    song += "SONG " + s + crlf
+		    song += "SONG " + s + crlf;
 		}
-		return song
+		return song;
 	}
 
 	// createPerTrackSettings() is generating a set of default settings per track
 	// we may want to add some more features here in the future
 	// a proper calculation of the pattern set size first - lastPattern per track is useful
 	function createPerTrackSettings() {
-		console.log("compiling the General section...")
-		var firstPattern = 1
-		var lastPattern = 31
-		var ratio = 8
+		console.log("compiling the General section...");
+		var firstPattern = 1;
+		var lastPattern = 31;
+		var ratio = 8;
 		// clock ratio (transp a)
 		// [24:1, 8:1, 7:1, 6:1, 5:1, 4:1, 3:1, 2:1, 1:1, 1:2, 1:3, 1:4, 1:5, 1:6, 1:7, 1:8][ratio]
-		var general = "TRACK;SELECTED;RES_KIND;TIME_RES;CVA_RANGE;CVA_MODE;CVA_MUTE;GATE_A_MUTE;CVB_RANGE;CVB_MODE;CVB_MUTE;GATE_B_MUTE;TR_MUTE;LOOP_LEN;ROOT;SCALE;QNTDIR;GTA%;GTB%;SOURCE;SWING;LASTPAT;SONGMODE;patternmd;transp a;transp b;loop step;loop pat;loop length;loop for;isLoop;trackBPM;ratio;gtFullA;gtFullB;resetWhat;resetWhen;stageShift;gateShift a;gateShift b;chance" + crlf
-		general += "0;1;0;0;0;1;0;0;0;0;50;50;1;" + firstPattern + ";" + lastPattern + ";0;0;0;0;0;1;1;0;" + tempoBPM[0] + ";"+ ratio +";1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf
-		general += "1;0;0;0;0;1;0;0;0;0;50;50;1;" + firstPattern + ";" + lastPattern + ";0;0;0;0;0;1;1;0;" + tempoBPM[1] + ";"+ ratio +";1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf
-		general += "2;0;0;0;0;1;0;0;0;0;50;50;1;" + firstPattern + ";" + lastPattern + ";0;0;0;0;0;1;1;0;" + tempoBPM[2] + ";"+ ratio +";1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf
-		general += "3;0;0;0;0;1;0;7;0;0;50;50;1;" + firstPattern + ";" + lastPattern + ";0;0;0;0;0;1;1;0;" + tempoBPM[3] + ";"+ ratio +";1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf
-		return general
+		var general = "TRACK;SELECTED;RES_KIND;TIME_RES;CVA_RANGE;CVA_MODE;CVA_MUTE;GATE_A_MUTE;CVB_RANGE;CVB_MODE;CVB_MUTE;GATE_B_MUTE;TR_MUTE;LOOP_LEN;ROOT;SCALE;QNTDIR;GTA%;GTB%;SOURCE;SWING;LASTPAT;SONGMODE;patternmd;transp a;transp b;loop step;loop pat;loop length;loop for;isLoop;trackBPM;ratio;gtFullA;gtFullB;resetWhat;resetWhen;stageShift;gateShift a;gateShift b;chance" + crlf;
+		general += "0;1;0;0;0;1;0;0;0;0;50;50;1;" + firstPattern + ";" + lastPattern + ";0;0;0;0;0;1;1;0;" + tempoBPM[0] + ";"+ ratio +";1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf;
+		general += "1;0;0;0;0;1;0;0;0;0;50;50;1;" + firstPattern + ";" + lastPattern + ";0;0;0;0;0;1;1;0;" + tempoBPM[1] + ";"+ ratio +";1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf;
+		general += "2;0;0;0;0;1;0;0;0;0;50;50;1;" + firstPattern + ";" + lastPattern + ";0;0;0;0;0;1;1;0;" + tempoBPM[2] + ";"+ ratio +";1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf;
+		general += "3;0;0;0;0;1;0;7;0;0;50;50;1;" + firstPattern + ";" + lastPattern + ";0;0;0;0;0;1;1;0;" + tempoBPM[3] + ";"+ ratio +";1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf;
+		return general;
 	}
 
 	// createGlobalSettings() is generating a set of global default settings
 	// we may want to add some more features here in the future
 	function createGlobalSettings() {
-		console.log("compiling the Closing section...")
-		var closing = "AllEdShPly;0Vis;aux;Master;rel temp;empty 1;empty 2;empty 3;empty 4" + crlf
-		closing += "1;0;0;1;0;0;0;0;0" + crlf
-		return closing
+		console.log("compiling the Closing section...");
+		var closing = "AllEdShPly;0Vis;aux;Master;rel temp;empty 1;empty 2;empty 3;empty 4" + crlf;
+		closing += "1;0;0;1;0;0;0;0;0" + crlf;
+		return closing;
 	}
 
 	// emptyPatterns() is used to initialize ze patternDict
 	function emptyPatterns() {
 		for (var ptype in patterns)
-			patternDict[patterns[ptype]] = []
+			patternDict[patterns[ptype]] = [];
 	}
 
 	// dumpPatterns() walks through the patternDict and concatenates all the elements into
 	// the 4*5*512 value pattern line block for the project
 	function dumpPatterns() {
-		var pcsv = ""
+		var pcsv = "";
 		for (var p in patterns) {
-			var ptype = patterns[p]
-			var parray = patternDict[ptype]
+			var ptype = patterns[p];
+			var parray = patternDict[ptype];
 			for (var i = 0; i < (32*16); i++) {
 				if (patternDict[ptype][i])
-					pcsv += ( patternDict[ptype][i] + ";" )
+					pcsv += ( patternDict[ptype][i] + ";" );
 				else
-					pcsv += ( "0;" )
+					pcsv += ( "0;" );
 			}
-			pcsv += ( ptype + crlf )
+			pcsv += ( ptype + crlf );
 		}
-		return pcsv
+		return pcsv;
 	}
 
 	// scanDenominators() deals with note value limits
@@ -627,13 +627,13 @@ MuseScore {
 		if (cursor.voice > voiceLimit)
 			return;
 		if ( cursor.element.duration.denominator > 32 ) {
-			errorDialog.openErrorDialog(qsTr("Note values smaller 1/32 are not supported"))
+			errorDialog.openErrorDialog(qsTr("Note values smaller 1/32 are not supported"));
 			quit;
 		}
 		if ( cursor.element.duration.denominator > 16 ) {
 			console.log(showPos(cursor, measureMap) + ": measure overrun " +
 		    	cursor.element.duration.nominator + "/" + cursor.element.duration.denominator );
-			patternsPerMeasure[cursor.staffIdx] = 2
+			patternsPerMeasure[cursor.staffIdx] = 2;
 		}
 
 	}
@@ -651,50 +651,50 @@ MuseScore {
 		if (cursor.voice > voiceLimit)
 			return;
 
-		var trackNr = cursor.staffIdx
-		var voiceNr = cursor.voice
+		var trackNr = cursor.staffIdx;
+		var voiceNr = cursor.voice;
 		if (staffMerge > 0) {
-			trackNr = [0, 0, 1, 1, 2, 2, 3, 3][cursor.staffIdx]
-			voiceNr = [0, 1, 0, 1, 0, 1, 0, 1][cursor.staffIdx]
+			trackNr = [0, 0, 1, 1, 2, 2, 3, 3][cursor.staffIdx];
+			voiceNr = [0, 1, 0, 1, 0, 1, 0, 1][cursor.staffIdx];
 			// alternative merge pattern
-			// trackNr = [0, 1, 2, 3, 0, 1, 2, 3][cursor.staffIdx]
-			// voiceNr = [0, 0, 0, 0, 1, 1, 1, 1][cursor.staffIdx]
+			// trackNr = [0, 1, 2, 3, 0, 1, 2, 3][cursor.staffIdx];
+			// voiceNr = [0, 0, 0, 0, 1, 1, 1, 1][cursor.staffIdx];
 		}
 
-		var channel = ["A", "B"][voiceNr]
-		var vmod = ["_var_mode_len", "_var_mode"][voiceNr]
-		var vmodLen = [867, 0][voiceNr]
+		var channel = ["A", "B"][voiceNr];
+		var vmod = ["_var_mode_len", "_var_mode"][voiceNr];
+		var vmodLen = [867, 0][voiceNr];
 
-		var track = "T" + trackNr
-		var cvind = track + "_CV" + channel + "_values"
-		var cvmod = track + "_CV" + channel + vmod
-		var gtind = track + "_GT" + channel
+		var track = "T" + trackNr;
+		var cvind = track + "_CV" + channel + "_values";
+		var cvmod = track + "_CV" + channel + vmod;
+		var gtind = track + "_GT" + channel;
 
-		var spm = 16 * patternsPerMeasure[cursor.staffIdx]
-		var beats = cursor.element.duration.numerator * spm / cursor.element.duration.denominator
-    var gridMatch = " pushing "
-		var cv = 0
-		var gate = 0
+		var spm = 16 * patternsPerMeasure[cursor.staffIdx];
+		var beats = cursor.element.duration.numerator * spm / cursor.element.duration.denominator;
+    var gridMatch = " pushing ";
+		var cv = 0;
+		var gate = 0;
 		if (cursor.element.type == Element.CHORD) {
-			var note = cursor.element.notes[0]
-			cv = (note.pitch - midiShift) * 201
-			gate = 16 * 867
+			var note = cursor.element.notes[0];
+			cv = (note.pitch - midiShift) * 201;
+			gate = 16 * 867;
 		}
 		if (matchGrid(cursor, measureMap)) {
 			for (var b = 0; b < beats; b++) {
 				if ( b >= (beats - 1) && cursor.element.type == Element.CHORD )
-					gate = 8 * 867
+					gate = 8 * 867;
 				if (cv < 0) {
-				  cv = 0
-					gate = 0
-					console.log(showPos(cursor, measureMap) + ": omitting subcrontraoctave note")
+				  cv = 0;
+					gate = 0;
+					console.log(showPos(cursor, measureMap) + ": omitting subcrontraoctave note");
 				}
-				patternDict[cvind].push(cv)
-				patternDict[cvmod].push(vmodLen)
-				patternDict[gtind].push(gate)
+				patternDict[cvind].push(cv);
+				patternDict[cvmod].push(vmodLen);
+				patternDict[gtind].push(gate);
 			}
 		}	else {
-			gridMatch = " omitting "
+			gridMatch = " omitting ";
 			console.log(showPos(cursor, measureMap) + ": " + cvind + "/" + gtind + gridMatch + beats + " beats cv(" +
 			  cv + ") gate(" + gate + ")" );
 		}
@@ -710,11 +710,11 @@ MuseScore {
 
 	onRun: {
 		var measureMap = buildMeasureMap(curScore);
-		emptyPatterns()
+		emptyPatterns();
 		if (maxStaffId > 3){
-		  voiceLimit = 0
-			staffLimit = 7
-			staffMerge = 1
+		  voiceLimit = 0;
+			staffLimit = 7;
+			staffMerge = 1;
 		}
 		// applyToSelectionOrScore(scanDenominators, measureMap);
 		applyToSelectionOrScore(note2CV, measureMap);
@@ -730,97 +730,97 @@ MuseScore {
 	// File names -------------------------------------------------
 
 	Label {
-		id: labelSpacerFilePathName
-		text: ""
-		font.pixelSize: fontSize
-		width: smallWidth
-		height: bigHeight
-		horizontalAlignment: Text.AlignRight
-		verticalAlignment: Text.AlignVCenter
+		id: labelSpacerFilePathName;
+		text: "";
+		font.pixelSize: fontSize;
+		width: smallWidth;
+		height: bigHeight;
+		horizontalAlignment: Text.AlignRight;
+		verticalAlignment: Text.AlignVCenter;
 	}
 
 	Label {
-		id: labelFilePathName
-		text: "File path and name"
-		font.pixelSize: fontTitleSize
-		anchors.left: labelSpacerFilePathName.right
-		width: smallWidth
-		height: bigHeight
-		verticalAlignment: Text.AlignVCenter
+		id: labelFilePathName;
+		text: "File path and name";
+		font.pixelSize: fontTitleSize;
+		anchors.left: labelSpacerFilePathName.right;
+		width: smallWidth;
+		height: bigHeight;
+		verticalAlignment: Text.AlignVCenter;
 	}
 
 	// File name
 
 	Label {
-		id: labelFileName
-		text: "File name  "
-		font.pixelSize: fontSize
+		id: labelFileName;
+		text: "File name  ";
+		font.pixelSize: fontSize;
 		anchors.top: labelSpacerFilePathName.bottom;
-		width: smallWidth
-		height: stdHeight
-		horizontalAlignment: Text.AlignRight
-		verticalAlignment: Text.AlignVCenter
+		width: smallWidth;
+		height: stdHeight;
+		horizontalAlignment: Text.AlignRight;
+		verticalAlignment: Text.AlignVCenter;
 	}
 
 	TextField {
-		id: textFieldFileName
-		placeholderText: qsTr("file name")
-		text: curScore.title.toUpperCase() + ".UST"
+		id: textFieldFileName;
+		placeholderText: qsTr("file name");
+		text: curScore.title.toUpperCase() + ".UST";
 		anchors.top: labelSpacerFilePathName.bottom;
 		anchors.left: labelFileName.right;
-		width: mediumWidth
-		height: stdHeight
+		width: mediumWidth;
+		height: stdHeight;
 	}
 
 	Button {
-		id: buttonFileName
-		text: "↺ Reset"
+		id: buttonFileName;
+		text: "↺ Reset";
 		anchors.top: labelSpacerFilePathName.bottom;
 		anchors.left: textFieldFileName.right;
-		width: buttonWidth
-		height: stdHeight
+		width: buttonWidth;
+		height: stdHeight;
 
 		MouseArea {
-			anchors.fill: parent
-			onClicked: textFieldFileName.text = curScore.title.toUpperCase() + ".UST"
+			anchors.fill: parent;
+			onClicked: textFieldFileName.text = curScore.title.toUpperCase() + ".UST";
 		}
 	}
 
 	// Path
 
 	Label {
-		id: labelFilePath
-		text: "File path  "
-		font.pixelSize: fontSize
+		id: labelFilePath;
+		text: "File path  ";
+		font.pixelSize: fontSize;
 		anchors.top: labelFileName.bottom;
-		width: smallWidth
-		height: stdHeight
-		horizontalAlignment: Text.AlignRight
-		verticalAlignment: Text.AlignVCenter
+		width: smallWidth;
+		height: stdHeight;
+		horizontalAlignment: Text.AlignRight;
+		verticalAlignment: Text.AlignVCenter;
 	}
 
 	TextField {
-		id: textFieldFilePath
-		placeholderText: qsTr("file path")
-		anchors.top: labelFileName.bottom
-		anchors.left: labelFilePath.right
-    text: dirname(curScore.path)
-		width: bigWidth
-		height: stdHeight
-		enabled: false
+		id: textFieldFilePath;
+		placeholderText: qsTr("file path");
+		anchors.top: labelFileName.bottom;
+		anchors.left: labelFilePath.right;
+    text: dirname(curScore.path);
+		width: bigWidth;
+		height: stdHeight;
+		enabled: false;
 	}
 
 	Button {
-		id: buttonFilePath
-		text: "📂 Choose"
+		id: buttonFilePath;
+		text: "📂 Choose";
 		anchors.top: labelFileName.bottom;
 		anchors.left: textFieldFilePath.right;
-		width: buttonWidth
-		height: stdHeight
+		width: buttonWidth;
+		height: stdHeight;
 
 		MouseArea {
-			anchors.fill: parent
-			onClicked: directorySelectDialog.open()
+			anchors.fill: parent;
+			onClicked: directorySelectDialog.open();
 		}
 	}
 
@@ -828,50 +828,50 @@ MuseScore {
 	// Confirm ----------------------------------------------------
 
 	Label {
-		id: labelSpacerConfirm1
-		text: " "
-		font.pixelSize: fontSize
+		id: labelSpacerConfirm1;
+		text: " ";
+		font.pixelSize: fontSize;
 		anchors.top: labelFilePath.bottom;
-		width: smallWidth
-		height: bigHeight
-		horizontalAlignment: Text.AlignRight
-		verticalAlignment: Text.AlignVCenter
+		width: smallWidth;
+		height: bigHeight;
+		horizontalAlignment: Text.AlignRight;
+		verticalAlignment: Text.AlignVCenter;
 	}
 
 	Button {
-		id: buttonConvert
-		text: "✓ Convert"
+		id: buttonConvert;
+		text: "✓ Convert";
 		anchors.top: labelSpacerConfirm1.bottom;
 		anchors.left: labelSpacerConfirm1.right;
-		width: buttonWidth
-		height: stdHeight
+		width: buttonWidth;
+		height: stdHeight;
 
 		MouseArea {
-			anchors.fill: parent
-			onClicked: createCSV()
+			anchors.fill: parent;
+			onClicked: createCSV();
 		}
 	}
 
 	Label {
-		id: labelInterButtons
-		text: "  "
-		font.pixelSize: fontSize
+		id: labelInterButtons;
+		text: "  ";
+		font.pixelSize: fontSize;
 		anchors.top: labelSpacerConfirm1.bottom;
 		anchors.left: buttonConvert.right;
-		height: stdHeight
+		height: stdHeight;
 	}
 
 	Button {
-		id: buttonClose
-		text: "✕ Close"
+		id: buttonClose;
+		text: "✕ Close";
 		anchors.top: labelSpacerConfirm1.bottom;
 		anchors.left: labelInterButtons.right;
-		width: buttonWidth
-		height: stdHeight
+		width: buttonWidth;
+		height: stdHeight;
 
 		MouseArea {
-			anchors.fill: parent
-			onClicked: Qt.quit()
+			anchors.fill: parent;
+			onClicked: Qt.quit();
 		}
 	}
 }
