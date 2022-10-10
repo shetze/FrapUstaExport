@@ -60,6 +60,7 @@ MuseScore {
 	property var maxStaffId: 0
 	property var staffLimit: 3
 	property var staffMerge: 0
+	property var tempoBPM: [0, 0, 0, 0]
 	// MIDI note 0 is C-2@8.176Hz
 	// Usta has a pitch range starting with 0V named either C0 or A0, negative CV values are not supported for pitch
 	// to match the MuseScore note values with the Usta range, we ignore the two lowest octaves and shift the MIDI note values 24 semitones down.
@@ -90,13 +91,58 @@ MuseScore {
 				"no": no
 			};
 			map[cur.tick] = cur;
-			// console.log(tsN + "/" + tsD + " measure " + no + " at tick " + cur.tick + " length " + ticksM);
 			if (!m.irregular)
 				++no;
+		  // get an overview of how many voices and staves we have in the score
 	    if (cursor.staffIdx > maxStaffId)
 				maxStaffId = cursor.staffIdx;
 			if (cursor.voice > maxVoiceId)
 				maxVoiceId = cursor.voice;
+
+			// collect tempo BPM settings throughout the score.
+			// the first (global) BPM setting is populated as default, all other
+			// settings are stored for the respective save index, allowing for
+			// different tempo settings for the four Usta tracks.
+		  var segment = m.firstSegment
+			while ((segment != null) && (segment.segmentType != Segment.ChordRest)) {
+				// console.log('Walking through segments, looking for first chord or rest');
+				segment = segment.nextInMeasure;
+			}
+			if (segment != null) {
+				for (var i = segment.annotations.length; i-- > 0; ) {
+					// console.log('walking through annotations');
+					if (segment.annotations[i].type == Element.TEMPO_TEXT) {
+					  if (segment.annotations[i].tempo != 0) {
+						  if (tempoBPM[0] == 0) {
+							  tempoBPM[0] = segment.annotations[i].tempo * 60;
+								tempoBPM[1] = segment.annotations[i].tempo * 60;
+								tempoBPM[2] = segment.annotations[i].tempo * 60;
+								tempoBPM[3] = segment.annotations[i].tempo * 60;
+							} else {
+							  // TEMPO_TEXT annotations allways belong to the first voice of the first staff
+								// therefor only the first track tempo can be modified by additional TEMPO_TEXT settings.
+							  tempoBPM[cursor.staffIdx] = segment.annotations[i].tempo * 60;
+							}
+						}
+						console.log('found tempo ' + tempoBPM[cursor.staffIdx]);
+						break;
+					}
+
+					// staff text annotations provide an easy and flexible way to pass all kinds of global and per track settings
+					// although the staff text is visibly attached to a particular line,
+					if (segment.annotations[i].type == Element.STAFF_TEXT) {
+					  // console.log('found staff text ' + cursor.staffIdx + ':' + segment.annotations[i].text.slice(0,4));
+						// to allow individual tempo settings for all four staves, we look for "BPM=x:yyy" staff text annotations
+						// where x is the track number (0-3) and yyy is the BPM value
+						if (segment.annotations[i].text.slice(0,4) == "BPM=") {
+						  var staffIdx = segment.annotations[i].text.slice(4,5);
+						  tempoBPM[staffIdx] = segment.annotations[i].text.slice(6,9);
+							console.log('found staff text BPM ' + staffIdx + ':' + tempoBPM[staffIdx]);
+						}
+					}
+				}
+			}
+			// console.log(tsN + "/" + tsD + " measure " + no + " at tick " + cur.tick + " length " + ticksM);
 			cursor.nextMeasure();
 		}
 		return map;
@@ -519,14 +565,19 @@ MuseScore {
 
 	// createPerTrackSettings() is generating a set of default settings per track
 	// we may want to add some more features here in the future
-	// a proper calculation of the pattern set size is useful
+	// a proper calculation of the pattern set size first - lastPattern per track is useful
 	function createPerTrackSettings() {
 		console.log("compiling the General section...")
+		var firstPattern = 1
+		var lastPattern = 31
+		var ratio = 8
+		// clock ratio (transp a)
+		// [24:1, 8:1, 7:1, 6:1, 5:1, 4:1, 3:1, 2:1, 1:1, 1:2, 1:3, 1:4, 1:5, 1:6, 1:7, 1:8][ratio]
 		var general = "TRACK;SELECTED;RES_KIND;TIME_RES;CVA_RANGE;CVA_MODE;CVA_MUTE;GATE_A_MUTE;CVB_RANGE;CVB_MODE;CVB_MUTE;GATE_B_MUTE;TR_MUTE;LOOP_LEN;ROOT;SCALE;QNTDIR;GTA%;GTB%;SOURCE;SWING;LASTPAT;SONGMODE;patternmd;transp a;transp b;loop step;loop pat;loop length;loop for;isLoop;trackBPM;ratio;gtFullA;gtFullB;resetWhat;resetWhen;stageShift;gateShift a;gateShift b;chance" + crlf
-		general += "0;1;0;0;0;1;0;0;0;0;50;50;1;0;0;0;0;0;0;0;1;1;0;96;1;1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf
-		general += "1;0;0;0;0;1;0;0;0;0;50;50;1;0;31;0;0;0;0;0;1;1;0;96;5;1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf
-		general += "2;0;0;0;0;1;0;0;0;0;50;50;1;0;31;0;0;0;0;0;1;1;0;96;7;1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf
-		general += "3;0;0;0;0;1;0;7;0;0;50;50;1;0;0;0;0;0;0;0;1;1;0;120;7;1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf
+		general += "0;1;0;0;0;1;0;0;0;0;50;50;1;" + firstPattern + ";" + lastPattern + ";0;0;0;0;0;1;1;0;" + tempoBPM[0] + ";"+ ratio +";1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf
+		general += "1;0;0;0;0;1;0;0;0;0;50;50;1;" + firstPattern + ";" + lastPattern + ";0;0;0;0;0;1;1;0;" + tempoBPM[1] + ";"+ ratio +";1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf
+		general += "2;0;0;0;0;1;0;0;0;0;50;50;1;" + firstPattern + ";" + lastPattern + ";0;0;0;0;0;1;1;0;" + tempoBPM[2] + ";"+ ratio +";1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf
+		general += "3;0;0;0;0;1;0;7;0;0;50;50;1;" + firstPattern + ";" + lastPattern + ";0;0;0;0;0;1;1;0;" + tempoBPM[3] + ";"+ ratio +";1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf
 		return general
 	}
 
