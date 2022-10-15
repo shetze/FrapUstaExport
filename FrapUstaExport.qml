@@ -33,7 +33,7 @@ MuseScore
 {
 description:"Export to FrapTools Usta Sequencer";
 menuPath:"Plugins." + "Frap Usta Export";
-version:"1.0";
+version:"1.2";
 requiresScore:true;
 pluginType:"dialog";
 id:window;
@@ -68,7 +68,7 @@ height:200;
   property var tempoBPM:[0, 0, 0, 0];
   // MIDI note 0 is C-2@8.176Hz
   // Usta has a pitch range starting with 0V named either C0 or A0, negative CV 
-  // values are not supported for pitch to match the MuseScore note values with 
+  // values are not supported for pitch. To match the MuseScore note values with 
   // the Usta range, we ignore the two lowest octaves and shift the MIDI note
   // values 24 semitones down.
   property var midiShift:24;
@@ -507,63 +507,6 @@ height:200;
     return (p.slice (0, p.lastIndexOf ("/") + 1));
   }
 
-  // QT message dialog
-  MessageDialog
-  {
-  id:errorDialog;
-  visible:false;
-  title:qsTr ("Error");
-  text:"Error";
-  onAccepted:{
-      close ();
-    }
-
-    function openErrorDialog (message)
-    {
-      text = message;
-      open ();
-    }
-  }
-
-  // QT message dialog
-  MessageDialog
-  {
-  id:endDialog;
-  visible:false;
-  title:qsTr ("Conversion performed");
-  text:"Score has been successfully converted to USTA format." + crlf +
-      "Resulting file: " + textFieldFilePath.text + "/" +
-      textFieldFileName.text + crlf + crlf;
-  onAccepted:{
-      Qt.quit ();
-    }
-
-    function openEndDialog (message)
-    {
-      text = message;
-      open ();
-    }
-  }
-
-  // QT message dialog
-  FileDialog
-  {
-  id:directorySelectDialog;
-  title:qsTr ("Please choose a directory");
-  selectFolder:true;
-  visible:false;
-  onAccepted:{
-    var exportDirectory = this.folder.toString ().replace ("file://", "").replace (/^\/(.:\/)(.*)$ /, "$1$2");
-      console.log ("Selected directory: " + exportDirectory);
-      textFieldFilePath.text = exportDirectory;
-      close ();
-    }
-  onRejected:{
-      console.log ("Directory not selected");
-      close ();
-    }
-  }
-
   // FileIO is the QT object which handles all the heavy lifting
   FileIO
   {
@@ -627,7 +570,7 @@ height:200;
   }
 
   // createPerTrackSettings() is generating a set of default settings per track 
-  // we may want to add some more features here in the future a proper
+  // we may want to add some more features here in the future. For example, a proper
   // calculation of the pattern set size first - lastPattern per track is
   // useful
   function createPerTrackSettings ()
@@ -640,8 +583,14 @@ height:200;
     // [24:1, 8:1, 7:1, 6:1, 5:1, 4:1, 3:1, 2:1, 1:1, 1:2, 1:3, 1:4, 1:5, 1:6,
     // 1:7, 1:8][ratio]
     var general =
-      "TRACK;SELECTED;RES_KIND;TIME_RES;CVA_RANGE;CVA_MODE;CVA_MUTE;GATE_A_MUTE;CVB_RANGE;CVB_MODE;CVB_MUTE;GATE_B_MUTE;TR_MUTE;LOOP_LEN;ROOT;SCALE;QNTDIR;GTA%;GTB%;SOURCE;SWING;LASTPAT;SONGMODE;patternmd;transp a;transp b;loop step;loop pat;loop length;loop for;isLoop;trackBPM;ratio;gtFullA;gtFullB;resetWhat;resetWhen;stageShift;gateShift a;gateShift b;chance"
-      + crlf;
+      "TRACK;SELECTED;RES_KIND;TIME_RES;CVA_RANGE;CVA_MODE;CVA_MUTE;GATE_A_MUTE;"
+      +
+      "CVB_RANGE;CVB_MODE;CVB_MUTE;GATE_B_MUTE;TR_MUTE;LOOP_LEN;ROOT;SCALE;QNTDIR;"
+      +
+      "GTA%;GTB%;SOURCE;SWING;LASTPAT;SONGMODE;patternmd;transp a;transp b;loop step;"
+      +
+      "loop pat;loop length;loop for;isLoop;trackBPM;ratio;gtFullA;gtFullB;resetWhat;"
+      + "resetWhen;stageShift;gateShift a;gateShift b;chance" + crlf;
     general +=
       "0;1;0;0;0;1;0;0;0;0;50;50;1;" + firstPattern + ";" + lastPattern +
       ";0;0;0;0;0;1;1;0;" + tempoBPM[0] + ";" + ratio +
@@ -781,24 +730,41 @@ height:200;
       {
 	var note = cursor.element.notes[0];
 	cv = (note.pitch - midiShift) * 201;
-	gate = 16 * 867;
+	gate = 8 * 867;
+      }
+    if (cv < 0)
+      {
+	cv = 0;
+	gate = 0;
+	console.log (showPos (cursor, measureMap) +
+		     ": omitting subcrontraoctave note");
       }
     if (matchGrid (cursor, measureMap))
       {
-	for (var b = 0; b < beats; b++)
+	if (checkEnableCondensed.checked)
 	  {
-	    if (b >= (beats - 1) && cursor.element.type == Element.CHORD)
-	      gate = 8 * 867;
-	    if (cv < 0)
+	    if (beats > 16)
 	      {
-		cv = 0;
-		gate = 0;
 		console.log (showPos (cursor, measureMap) +
-			     ": omitting subcrontraoctave note");
+			     ": beat overrun " + beats);
+		beats = 16;
 	      }
+	    vmodLen = 867 * beats;
 	    patternDict[cvind].push (cv);
 	    patternDict[cvmod].push (vmodLen);
 	    patternDict[gtind].push (gate);
+	  }
+	else
+	  {
+	    gate = 16 * 867;
+	    for (var b = 0; b < beats; b++)
+	      {
+		if (b >= (beats - 1) && cursor.element.type == Element.CHORD)
+		  gate = 8 * 867;
+		patternDict[cvind].push (cv);
+		patternDict[cvmod].push (vmodLen);
+		patternDict[gtind].push (gate);
+	      }
 	  }
       }
     else
@@ -825,11 +791,15 @@ height:200;
 onRun:{
     var measureMap = buildMeasureMap (curScore);
     emptyPatterns ();
+    // we support more than 4 and up to 8 staves by merging two staves into
+    // channels A and B of the four tracks.
+    // condensed mode is disabled when merging.
     if (maxStaffId > 3)
       {
 	voiceLimit = 0;
 	staffLimit = 7;
 	staffMerge = 1;
+	checkEnableCondensed.checked = false;
       }
     // applyToSelectionOrScore(scanDenominators, measureMap);
     applyToSelectionOrScore (note2CV, measureMap);
@@ -841,6 +811,62 @@ onRun:{
   // 
   // ******************************************************************
 
+  // QT message dialog
+  MessageDialog
+  {
+  id:errorDialog;
+  visible:false;
+  title:qsTr ("Error");
+  text:"Error";
+  onAccepted:{
+      close ();
+    }
+
+    function openErrorDialog (message)
+    {
+      text = message;
+      open ();
+    }
+  }
+
+  // QT message dialog
+  MessageDialog
+  {
+  id:endDialog;
+  visible:false;
+  title:qsTr ("Conversion performed");
+  text:"Score has been successfully converted to USTA format." + crlf +
+      "Resulting file: " + textFieldFilePath.text + "/" +
+      textFieldFileName.text + crlf + crlf;
+  onAccepted:{
+      Qt.quit ();
+    }
+
+    function openEndDialog (message)
+    {
+      text = message;
+      open ();
+    }
+  }
+
+  // QT message dialog
+  FileDialog
+  {
+  id:directorySelectDialog;
+  title:qsTr ("Please choose a directory");
+  selectFolder:true;
+  visible:false;
+  onAccepted:{
+    var exportDirectory = this.folder.toString ().replace ("file://", "").replace (/^\/(.:\/)(.*)$ /, "$1$2");
+      console.log ("Selected directory: " + exportDirectory);
+      textFieldFilePath.text = exportDirectory;
+      close ();
+    }
+  onRejected:{
+      console.log ("Directory not selected");
+      close ();
+    }
+  }
 
   // File names -------------------------------------------------
 
@@ -950,15 +976,81 @@ onRun:{
     }
   }
 
+  // Settings ----------------------------------------------------
+
+  Label
+  {
+  id:labelSpacerSettings;
+  text:"";
+  font.pixelSize:fontSize;
+  anchors.top:labelFilePath.bottom;
+  width:smallWidth;
+  height:bigHeight;
+  horizontalAlignment:Text.AlignRight;
+  verticalAlignment:Text.AlignVCenter;
+  }
+
+  Label
+  {
+  id:labelSettings;
+  text:"Settings";
+  font.pixelSize:fontTitleSize;
+  anchors.top:labelFilePath.bottom;
+  anchors.left:labelSpacerFilePathName.right;
+  width:smallWidth;
+  height:bigHeight;
+  verticalAlignment:Text.AlignVCenter;
+  }
+
+  Label
+  {
+  id:labelEnableCondensed;
+  text:"Enable condensed  ";
+  font.pixelSize:fontSize;
+  anchors.top:labelSpacerSettings.bottom;
+  width:smallWidth;
+  height:stdHeight;
+  horizontalAlignment:Text.AlignRight;
+  verticalAlignment:Text.AlignVCenter;
+  }
+
+  CheckBox
+  {
+  id:checkEnableCondensed;
+  anchors.top:labelSpacerSettings.bottom;
+  anchors.left:labelFilePath.right;
+  checked:false;
+
+    MouseArea
+    {
+    anchors.fill:parent;
+    onClicked:{
+	checkEnableCondensed.checked = !checkEnableCondensed.checked;
+      }
+    }
+  }
+
+  Label
+  {
+  id:labelEnableCondensedExplain;
+  text:"Check to map note values to length settings (only working with up to four staves/voices).";
+  font.pixelSize:fontSize;
+  anchors.top:labelSpacerSettings.bottom;
+  anchors.left:checkEnableCondensed.right;
+  width:bigWidth;
+  height:bigHeight;
+  horizontalAlignment:Text.AlignLeft;
+  wrapMode:Text.WordWrap;
+  }
 
   // Confirm ----------------------------------------------------
 
   Label
   {
-  id:labelSpacerConfirm1;
+  id:labelSpacerConfirm;
   text:" ";
   font.pixelSize:fontSize;
-  anchors.top:labelFilePath.bottom;
+  anchors.top:labelSpacerSettings.bottom;
   width:smallWidth;
   height:bigHeight;
   horizontalAlignment:Text.AlignRight;
@@ -969,8 +1061,8 @@ onRun:{
   {
   id:buttonConvert;
   text:"✓ Convert";
-  anchors.top:labelSpacerConfirm1.bottom;
-  anchors.left:labelSpacerConfirm1.right;
+  anchors.top:labelSpacerConfirm.bottom;
+  anchors.left:labelSpacerConfirm.right;
   width:buttonWidth;
   height:stdHeight;
 
@@ -986,7 +1078,7 @@ onRun:{
   id:labelInterButtons;
   text:"  ";
   font.pixelSize:fontSize;
-  anchors.top:labelSpacerConfirm1.bottom;
+  anchors.top:labelSpacerConfirm.bottom;
   anchors.left:buttonConvert.right;
   height:stdHeight;
   }
@@ -995,7 +1087,7 @@ onRun:{
   {
   id:buttonClose;
   text:"✕ Close";
-  anchors.top:labelSpacerConfirm1.bottom;
+  anchors.top:labelSpacerConfirm.bottom;
   anchors.left:labelInterButtons.right;
   width:buttonWidth;
   height:stdHeight;
