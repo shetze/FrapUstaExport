@@ -33,7 +33,7 @@ MuseScore
 {
 description:"Export to FrapTools Usta Sequencer";
 menuPath:"Plugins." + "Frap Usta Export";
-version:"1.2";
+version:"2.0";
 requiresScore:true;
 pluginType:"dialog";
 id:window;
