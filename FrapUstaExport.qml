@@ -38,7 +38,7 @@ requiresScore:true;
 pluginType:"dialog";
 id:window;
 width:800;
-height:200;
+height:250;
 
   property int buttonWidth:80;
   property int smallWidth:150;
@@ -59,6 +59,7 @@ height:200;
 			 "T2_GTB", "T3_CVA_values", "T3_CVB_values",
 			 "T3_CVA_var_mode_len", "T3_CVB_var_mode", "T3_GTA",
 			 "T3_GTB"];
+  property var sinfonionDict:[];
   property var patternsPerMeasure:[1, 1, 1, 1, 1, 1, 1, 1];
   property var maxVoiceId:0;
   property var voiceLimit:1;
@@ -67,8 +68,8 @@ height:200;
   property var staffMerge:0;
   property var tempoBPM:[0, 0, 0, 0];
   // MIDI note 0 is C-2@8.176Hz
-  // Usta has a pitch range starting with 0V named either C0 or A0, negative CV 
-  // values are not supported for pitch. To match the MuseScore note values with 
+  // Usta has a pitch range starting with 0V named either C0 or A0, negative CV
+  // values are not supported for pitch. To match the MuseScore note values with
   // the Usta range, we ignore the two lowest octaves and shift the MIDI note
   // values 24 semitones down.
   property var midiShift:24;
@@ -172,6 +173,17 @@ height:200;
 				     ':' + tempoBPM[staffIdx]);
 		      }
 		  }
+		if (segment.annotations[i].type == Element.HARMONY)
+		  {
+		    var sinfony =
+		      chord2Sinfonion (segment.annotations[i].text,
+				       (4 * ticksM / 480));
+		    console.log ('found accord symbol ' + tsN + "/" + tsD +
+				 " measure " + no + " at tick " + cur.tick +
+				 " length " + ticksM + ':' +
+				 segment.annotations[i].text + "->" +
+				 sinfony);
+		  }
 	      }
 	  }
 	// console.log(tsN + "/" + tsD + " measure " + no + " at tick " +
@@ -202,7 +214,7 @@ height:200;
 	staveEnd = cursor.staffIdx;
 	if (!cursor.tick)
 	  {
-	    /* 
+	    /*
 	     * This happens when the selection goes to the
 	     * end of the score — rewind() jumps behind the
 	     * last segment, setting tick = 0.
@@ -280,7 +292,7 @@ height:200;
   }
 
   // nameElementType() knows about all the possible elements that can appear
-  // inside a score. Currently, we only care about CHORD and REST, but this may 
+  // inside a score. Currently, we only care about CHORD and REST, but this may
   // change in the future.
   function nameElementType (elementType)
   {
@@ -569,7 +581,7 @@ height:200;
     return song;
   }
 
-  // createPerTrackSettings() is generating a set of default settings per track 
+  // createPerTrackSettings() is generating a set of default settings per track
   // we may want to add some more features here in the future. For example, a proper
   // calculation of the pattern set size first - lastPattern per track is
   // useful
@@ -578,10 +590,14 @@ height:200;
     console.log ("compiling the General section...");
     var firstPattern = 1;
     var lastPattern = 31;
-    var ratio = 8;
+    var ratio = 11;
     // clock ratio (transp a)
     // [24:1, 8:1, 7:1, 6:1, 5:1, 4:1, 3:1, 2:1, 1:1, 1:2, 1:3, 1:4, 1:5, 1:6,
     // 1:7, 1:8][ratio]
+    // general[0] Track Number 0-3
+    // general[1] currently selected track 0/1
+    // general[5] CVB Mode 0=Raw 1=Pitch
+    // general[12] Clock Source 0=ext 1=int
     var general =
       "TRACK;SELECTED;RES_KIND;TIME_RES;CVA_RANGE;CVA_MODE;CVA_MUTE;GATE_A_MUTE;"
       +
@@ -592,20 +608,20 @@ height:200;
       "loop pat;loop length;loop for;isLoop;trackBPM;ratio;gtFullA;gtFullB;resetWhat;"
       + "resetWhen;stageShift;gateShift a;gateShift b;chance" + crlf;
     general +=
-      "0;1;0;0;0;1;0;0;0;0;50;50;1;" + firstPattern + ";" + lastPattern +
-      ";0;0;0;0;0;1;1;0;" + tempoBPM[0] + ";" + ratio +
+      "0;1;0;0;0;0;0;0;0;0;50;50;0;" + firstPattern + ";" + lastPattern +
+      ";0;0;0;0;0;1;1;0;" + Math.floor (tempoBPM[0]) + ";" + ratio +
       ";1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf;
     general +=
-      "1;0;0;0;0;1;0;0;0;0;50;50;1;" + firstPattern + ";" + lastPattern +
-      ";0;0;0;0;0;1;1;0;" + tempoBPM[1] + ";" + ratio +
+      "1;0;0;0;0;0;0;0;0;0;50;50;0;" + firstPattern + ";" + lastPattern +
+      ";0;0;0;0;0;1;1;0;" + Math.floor (tempoBPM[1]) + ";" + ratio +
       ";1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf;
     general +=
-      "2;0;0;0;0;1;0;0;0;0;50;50;1;" + firstPattern + ";" + lastPattern +
-      ";0;0;0;0;0;1;1;0;" + tempoBPM[2] + ";" + ratio +
+      "2;0;0;0;0;0;0;0;0;0;50;50;0;" + firstPattern + ";" + lastPattern +
+      ";0;0;0;0;0;1;1;0;" + Math.floor (tempoBPM[2]) + ";" + ratio +
       ";1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf;
     general +=
-      "3;0;0;0;0;1;0;7;0;0;50;50;1;" + firstPattern + ";" + lastPattern +
-      ";0;0;0;0;0;1;1;0;" + tempoBPM[3] + ";" + ratio +
+      "3;0;0;0;0;0;0;7;0;0;50;50;0;" + firstPattern + ";" + lastPattern +
+      ";0;0;0;0;0;1;1;0;" + Math.floor (tempoBPM[3]) + ";" + ratio +
       ";1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf;
     return general;
   }
@@ -618,13 +634,18 @@ height:200;
     var closing =
       "AllEdShPly;0Vis;aux;Master;rel temp;empty 1;empty 2;empty 3;empty 4" +
       crlf;
-    closing += "1;0;0;1;0;0;0;0;0" + crlf;
+    closing += "3;0;0;3;0;0;0;0;0" + crlf;
     return closing;
   }
 
-  // emptyPatterns() is used to initialize ze patternDict
+  // emptyPatterns() is used to initialize the pattern dictionaries
   function emptyPatterns ()
   {
+    sinfonionDict["T3_SINF_root"] =[];
+    sinfonionDict["T3_SINF_degree"] =[];
+    sinfonionDict["T3_SINF_len"] =[];
+    sinfonionDict["T3_SINF_gateA"] =[];
+    sinfonionDict["T3_SINF_gateB"] =[];
     for (var ptype in patterns)
       patternDict[patterns[ptype]] =[];
   }
@@ -638,10 +659,30 @@ height:200;
       {
 	var ptype = patterns[p];
 	var parray = patternDict[ptype];
+	if (checkEnableSinfonion.checked && ptype == "T3_CVA_values")
+	  {
+	    parray = sinfonionDict["T3_SINF_root"];
+	  }
+	if (checkEnableSinfonion.checked && ptype == "T3_CVB_values")
+	  {
+	    parray = sinfonionDict["T3_SINF_degree"];
+	  }
+	if (checkEnableSinfonion.checked && ptype == "T3_CVA_var_mode_len")
+	  {
+	    parray = sinfonionDict["T3_SINF_len"];
+	  }
+	if (checkEnableSinfonion.checked && ptype == "T3_GTA")
+	  {
+	    parray = sinfonionDict["T3_SINF_gateA"];
+	  }
+	if (checkEnableSinfonion.checked && ptype == "T3_GTB")
+	  {
+	    parray = sinfonionDict["T3_SINF_gateB"];
+	  }
 	for (var i = 0; i < (32 * 16); i++)
 	  {
-	    if (patternDict[ptype][i])
-	      pcsv += (patternDict[ptype][i] + ";");
+	    if (parray[i])
+	      pcsv += (parray[i] + ";");
 	    else
 	      pcsv += ("0;");
 	  }
@@ -652,8 +693,8 @@ height:200;
 
   // scanDenominators() deals with note value limits
   // the usta pattern consists of 16 steps;
-  // by default, we map one measure to these 16 steps which leads to a limit of 
-  // 
+  // by default, we map one measure to these 16 steps which leads to a limit of
+  //
   // 1/16th note values
   // we may support 1/32 note values by mapping one measure to 2*16 pattern
   // steps, this is not fully implemented yet
@@ -681,6 +722,154 @@ height:200;
 	patternsPerMeasure[cursor.staffIdx] = 2;
       }
 
+  }
+
+  // chord2Sinfonion translates the chord symbol into CV suitable to provide
+  // the ACL Sinfonion chord sequence
+  // we only use one (the first) chord for each measure
+  // channel A is the root note
+  // channel B is the degree of the first Chords mode
+  //    turn ROOT and DEGREE full CCW to make this work properly
+  // gate A fires once per measure (usable for the AB switch)
+  // gate B fires each step, proving a 4 PPQ clock signal
+  function chord2Sinfonion (chord, steps)
+  {
+    if (chord.includes ('/'))
+      {
+	chord = chord.slice (0, chord.lastIndexOf ("/"));
+      }
+    var root = chord.slice (0, 1);
+    var mode = '';
+    var pitch = 0;
+    if (chord.slice (1, 2) == '#')
+      {
+	root += '#';
+	mode = chord.slice (2, 9);
+      }
+    else if (chord.slice (1, 2) == 'b')
+      {
+	root += 'b';
+	mode = chord.slice (2, 9);
+      }
+    else
+      {
+	mode = chord.slice (1, 9);
+      }
+    console.log ('root:' + root + ' mode:<' + mode + '> steps ' + steps);
+    pitch = pitchValue (root);
+    var degree = degreeValue (mode);
+    var gateAfired = false;
+    while (steps > 16)
+      {
+	sinfonionDict["T3_SINF_root"].push ((pitch + midiShift) * 201);
+	sinfonionDict["T3_SINF_degree"].push ((degree + midiShift) * 201);
+	sinfonionDict["T3_SINF_len"].push (16 * 867);
+	// gate A fires once per measure
+	sinfonionDict["T3_SINF_gateA"].push (4 * 867);
+	// gate B fires every step (4 PPQ)
+	sinfonionDict["T3_SINF_gateB"].push (16 * 867 + 289);	// 16 gates (green)
+	gateAfired = true;
+	steps -= 16;
+      }
+    sinfonionDict["T3_SINF_root"].push ((pitch + midiShift) * 201);
+    sinfonionDict["T3_SINF_degree"].push ((degree + midiShift) * 201);
+    sinfonionDict["T3_SINF_len"].push (steps * 867);
+    if (gateAfired)
+      {
+	sinfonionDict["T3_SINF_gateA"].push (289 + 289);	// skip gate (red)
+      }
+    else
+      {
+	sinfonionDict["T3_SINF_gateA"].push (867);
+      }
+    sinfonionDict["T3_SINF_gateB"].push (steps * 867 + 289);	// # gates (green)
+    return pitch + ':' + degree;
+  }
+
+  function pitchValue (root)
+  {
+    switch (root)
+      {
+      case 'C':
+	return 0;
+      case 'C#':
+	return 1;
+      case 'Db':
+	return 1;
+      case 'D':
+	return 2;
+      case 'D#':
+	return 3;
+      case 'Eb':
+	return 3;
+      case 'E':
+	return 4;
+      case 'F':
+	return 5;
+      case 'F#':
+	return 6;
+      case 'Gb':
+	return 6;
+      case 'G':
+	return 7;
+      case 'G#':
+	return 8;
+      case 'Ab':
+	return 8;
+      case 'A':
+	return 9;
+      case 'A#':
+	return 10;
+      case 'Bb':
+	return 10;
+      case 'B':
+	return 11;
+      default:
+	return 0;
+      }
+
+  }
+
+  function degreeValue (mode)
+  {
+    switch (mode)
+      {
+      case 'lyd':
+	return 0;
+      case 'maj':
+      case 'Maj9':
+	return 1;
+      case '7':
+	return 2;
+      case 'sus':
+      case 'sus4':
+      case '7sus4':
+	return 3;
+      case 'alt':
+	return 4;
+      case 'hm5':
+	return 5;
+      case 'dor':
+	return 6;
+      case 'min':
+      case 'm':
+      case 'm9':
+      case 'm7':		// optional min|phr
+	return 7;
+      case 'hm':
+      case 'm(Maj7)':
+	return 8;
+      case 'phr':
+	return 9;
+      case 'dim':
+	return 10;
+      case 'aug':
+	return 11;
+      case '7(b13)':		// substitution for Chords2 Degree 5
+	return 0;
+      default:
+	return 0;
+      }
   }
 
   // note2CV() translates the note (and rest) elements in the score to CV and
@@ -743,13 +932,19 @@ height:200;
       {
 	if (checkEnableCondensed.checked)
 	  {
-	    if (beats > 16)
+	    while (beats > 16)
 	      {
 		console.log (showPos (cursor, measureMap) +
 			     ": beat overrun " + beats);
-		beats = 16;
+		vmodLen = 867 * 16;
+		patternDict[cvind].push (cv);
+		patternDict[cvmod].push (vmodLen);
+		patternDict[gtind].push (16 * 867);
+		beats -= 16;
 	      }
 	    vmodLen = 867 * beats;
+	    // console.log (showPos (cursor, measureMap) +
+	    //           ": condensed len " + vmodLen);
 	    patternDict[cvind].push (cv);
 	    patternDict[cvmod].push (vmodLen);
 	    patternDict[gtind].push (gate);
@@ -789,8 +984,8 @@ height:200;
   }
 
 onRun:{
-    var measureMap = buildMeasureMap (curScore);
     emptyPatterns ();
+    var measureMap = buildMeasureMap (curScore);
     // we support more than 4 and up to 8 staves by merging two staves into
     // channels A and B of the four tracks.
     // condensed mode is disabled when merging.
@@ -806,9 +1001,9 @@ onRun:{
   }
 
   // ******************************************************************
-  // 
+  //
   // GUI
-  // 
+  //
   // ******************************************************************
 
   // QT message dialog
@@ -1019,7 +1214,7 @@ onRun:{
   id:checkEnableCondensed;
   anchors.top:labelSpacerSettings.bottom;
   anchors.left:labelFilePath.right;
-  checked:false;
+  checked:true;
 
     MouseArea
     {
@@ -1043,6 +1238,47 @@ onRun:{
   wrapMode:Text.WordWrap;
   }
 
+  Label
+  {
+  id:labelEnableSinfonion;
+  text:"Enable Sinfonion ";
+  font.pixelSize:fontSize;
+  anchors.top:labelEnableCondensed.bottom;
+  width:smallWidth;
+  height:stdHeight;
+  horizontalAlignment:Text.AlignRight;
+  verticalAlignment:Text.AlignVCenter;
+  }
+
+  CheckBox
+  {
+  id:checkEnableSinfonion;
+  anchors.top:labelEnableCondensed.bottom;
+  anchors.left:labelFilePath.right;
+  checked:true;
+
+    MouseArea
+    {
+    anchors.fill:parent;
+    onClicked:{
+	checkEnableSinfonion.checked = !checkEnableSinfonion.checked;
+      }
+    }
+  }
+
+  Label
+  {
+  id:labelEnableSinfonionExplain;
+  text:"Check to enable root and chord harmony settings for ACL Sinfonion.";
+  font.pixelSize:fontSize;
+  anchors.top:labelEnableCondensed.bottom;
+  anchors.left:checkEnableSinfonion.right;
+  width:bigWidth;
+  height:stdHeight;
+  horizontalAlignment:Text.AlignLeft;
+  wrapMode:Text.WordWrap;
+  }
+
   // Confirm ----------------------------------------------------
 
   Label
@@ -1050,9 +1286,9 @@ onRun:{
   id:labelSpacerConfirm;
   text:" ";
   font.pixelSize:fontSize;
-  anchors.top:labelSpacerSettings.bottom;
+  anchors.top:labelEnableSinfonion.bottom;
   width:smallWidth;
-  height:bigHeight;
+  height:stdHeight;
   horizontalAlignment:Text.AlignRight;
   verticalAlignment:Text.AlignVCenter;
   }
