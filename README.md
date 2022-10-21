@@ -47,6 +47,28 @@ Phrases and whole passages can be recombined as a collage.
 And, of course, entire scores can be composed especially for the sequencer.
 Pitch can also be interpreted as control voltage for any other purpose.
 
+## Condensed Mode
+
+In order to realize the maximum number of 8 independent note lines, each with independent note values for channels A and B, the note values are realized during export by concatenating the corresponding number of equal 1/16th (4PPQ) length stages. In Condensed Mode, with a maximum of 4 note lines, the note values in the Usta are mapped to the stage length.
+
+In normal export, typically one bar at a time is written to a 16-stage pattern. This way all tracks simply stay in time, but only 32 measures fit on the CV score.
+
+In Condensed Mode, a new note is written for each stage of a pattern. This way the bar boundaries often do not fall itno the patterns of the tracks. Because the parallel staves typically do not contain exactly the same number of notes, the patterns are also often of different lengths.
+
+If all the tracks start synchronously, the whole piece will be in time until the first track reaches the end and starts again with the first pattern. From then on, the tracks shift more and more against each other. As in a canon or a fugue, these shifts can provide interesting new sonic experiences.
+
+## Sinfonion Mode
+
+If Usta is the CV score, the ACL Sinfonion is the CV conductor. The Sinfonion provides harmony in up to 8 parallel voices.
+
+To deepen the possibility of multi-layered collages already hinted at in Condensed Mode and to provide them with a harmonic framework, the fourth track of the Usta is used in Sinfonion Mode to control the Chord Sequencer in the Sinfonion.
+
+A chord symbol is evaluated for each bar in the score. The root note is stored in channel A. In channel B, the degree is used to select the scale for the chord in the Sinfonion. Only the first chords mode is supported at the moment.
+
+In gate A of track 4 a trigger is sent at the beginning of each new bar.
+In gate B of track 4 a 4 PPQ clock signal is output for synchronization with other modules.
+
+
 ## What next?
 
 Using the plugin is pretty self-explanatory.
