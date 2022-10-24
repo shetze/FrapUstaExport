@@ -33,7 +33,7 @@ MuseScore
 {
 description:"Export to FrapTools Usta Sequencer";
 menuPath:"Plugins." + "Frap Usta Export";
-version:"2.0";
+version:"2.5";
 requiresScore:true;
 pluginType:"dialog";
 id:window;
@@ -67,6 +67,8 @@ height:250;
   property var staffLimit:3;
   property var staffMerge:0;
   property var tempoBPM:[0, 0, 0, 0];
+  property var trackLength:[31, 31, 31, 31];
+  property var skipMode:[0, 0, 0, 0];
   // MIDI note 0 is C-2@8.176Hz
   // Usta has a pitch range starting with 0V named either C0 or A0, negative CV
   // values are not supported for pitch. To match the MuseScore note values with
@@ -91,6 +93,8 @@ height:250;
 	var ticksB = division * 4.0 / tsD;
 	var ticksM = ticksB * tsN;
 	no += m.noOffset;
+	var skip = false;
+	var sync = false;
 	var cur = {
 	"tick":tick,
 	"tsD":tsD,
@@ -98,7 +102,9 @@ height:250;
 	"ticksB":ticksB,
 	"ticksM":ticksM,
 	"past":(tick + ticksM),
-	"no":no
+	"no":no,
+	"skip":skip,
+	"sync":sync
 	};
 	map[cur.tick] = cur;
 	if (!m.irregular)
@@ -171,6 +177,29 @@ height:250;
 			  segment.annotations[i].text.slice (6, 9);
 			console.log ('found staff text BPM ' + staffIdx +
 				     ':' + tempoBPM[staffIdx]);
+		      }
+		    if (segment.annotations[i].text.slice (0, 4) == "usta")
+		      {
+			var cmd = segment.annotations[i].text.slice (5, 9);
+			var arg = segment.annotations[i].text.slice (10, 50);
+			if (cmd == "skip")
+			  {
+			    cur.skip = arg;
+			  }
+			if (cmd == "sync")
+			  {
+			    cur.sync = arg;
+			  }
+			if (cmd == "sbpm")
+			  {
+			    var bpmList = arg (',');
+			    for (var i in bpmList)
+			      {
+				var bd = bpmList[i].split (':');
+				tempoBPM[bd[0]] = bd[1];
+			      }
+			  }
+			console.log ('found usta cmd ' + cmd + ':' + arg);
 		      }
 		  }
 		if (segment.annotations[i].type == Element.HARMONY)
@@ -272,6 +301,59 @@ height:250;
 
     return "St" + (cursor.staffIdx + 1) +
       " Vc" + (cursor.voice + 1) + " Ms" + m.no + " Bt" + b;
+  }
+
+  function skipMeasure (cursor, measureMap)
+  {
+    var m = measureMap[cursor.measure.firstSegment.tick];
+    if (m.skip)
+      {
+	var splitList = m.skip.split (',');
+	for (var i in splitList)
+	  {
+	    var sd = splitList[i].split (':');
+	    if (sd[0] == 0 || sd[0] == (cursor.staffIdx + 1))
+	      {
+		skipMode[cursor.staffIdx] = m.no * 1 + sd[1] * 1;
+		console.log (showPos (cursor, measureMap) + ": skip " +
+			     sd[1] + " to " + skipMode[cursor.staffIdx]);
+		return true;
+	      }
+	  }
+      }
+    if (skipMode[cursor.staffIdx])
+      {
+	if (skipMode[cursor.staffIdx] > m.no)
+	  {
+	    return true;
+	  }
+	else
+	  {
+	    skipMode[cursor.staffIdx] = false;
+	  }
+      }
+    return false;
+  }
+
+  function syncPattern (cursor, measureMap)
+  {
+    var m = measureMap[cursor.measure.firstSegment.tick];
+    if (m.sync)
+      {
+	var syncList = m.sync.split (',');
+	for (var i in syncList)
+	  {
+	    if (syncList[i] == (cursor.staffIdx + 1))
+	      {
+		syncList.splice (i, 1);
+		m.sync = syncList.join (',');
+		console.log (showPos (cursor, measureMap) +
+			     ": syncPattern remains " + m.sync);
+		return true;
+	      }
+	  }
+      }
+    return false;
   }
 
   // matchGrid checks if the cursor is matching a 16th note grid pattern
@@ -581,15 +663,31 @@ height:250;
     return song;
   }
 
+  function calculateTrackLenghts ()
+  {
+    trackLength[0] =
+      Math.min (Math.ceil (patternDict["T0_CVA_values"].length / 16), 31);
+    trackLength[1] =
+      Math.min (Math.ceil (patternDict["T1_CVA_values"].length / 16), 31);
+    trackLength[2] =
+      Math.min (Math.ceil (patternDict["T2_CVA_values"].length / 16), 31);
+    trackLength[3] =
+      Math.min (Math.ceil (patternDict["T3_CVA_values"].length / 16), 31);
+    if (checkEnableSinfonion.checked)
+      {
+	trackLength[3] =
+	  Math.min (Math.ceil (sinfonionDict["T3_SINF_root"].length / 16),
+		    31);
+      }
+  }
+
   // createPerTrackSettings() is generating a set of default settings per track
-  // we may want to add some more features here in the future. For example, a proper
-  // calculation of the pattern set size first - lastPattern per track is
-  // useful
+  // we may want to add some more features here in the future.
   function createPerTrackSettings ()
   {
     console.log ("compiling the General section...");
+    calculateTrackLenghts ();
     var firstPattern = 1;
-    var lastPattern = 31;
     var ratio = 11;
     // clock ratio (transp a)
     // [24:1, 8:1, 7:1, 6:1, 5:1, 4:1, 3:1, 2:1, 1:1, 1:2, 1:3, 1:4, 1:5, 1:6,
@@ -608,19 +706,19 @@ height:250;
       "loop pat;loop length;loop for;isLoop;trackBPM;ratio;gtFullA;gtFullB;resetWhat;"
       + "resetWhen;stageShift;gateShift a;gateShift b;chance" + crlf;
     general +=
-      "0;1;0;0;0;0;0;0;0;0;50;50;0;" + firstPattern + ";" + lastPattern +
+      "0;1;0;0;0;0;0;0;0;0;50;50;0;" + firstPattern + ";" + trackLength[0] +
       ";0;0;0;0;0;1;1;0;" + Math.floor (tempoBPM[0]) + ";" + ratio +
       ";1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf;
     general +=
-      "1;0;0;0;0;0;0;0;0;0;50;50;0;" + firstPattern + ";" + lastPattern +
+      "1;0;0;0;0;0;0;0;0;0;50;50;0;" + firstPattern + ";" + trackLength[1] +
       ";0;0;0;0;0;1;1;0;" + Math.floor (tempoBPM[1]) + ";" + ratio +
       ";1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf;
     general +=
-      "2;0;0;0;0;0;0;0;0;0;50;50;0;" + firstPattern + ";" + lastPattern +
+      "2;0;0;0;0;0;0;0;0;0;50;50;0;" + firstPattern + ";" + trackLength[2] +
       ";0;0;0;0;0;1;1;0;" + Math.floor (tempoBPM[2]) + ";" + ratio +
       ";1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf;
     general +=
-      "3;0;0;0;0;0;0;7;0;0;50;50;0;" + firstPattern + ";" + lastPattern +
+      "3;0;0;0;0;0;0;7;0;0;50;50;0;" + firstPattern + ";" + trackLength[3] +
       ";0;0;0;0;0;1;1;0;" + Math.floor (tempoBPM[3]) + ";" + ratio +
       ";1;2;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0" + crlf;
     return general;
@@ -791,38 +889,37 @@ height:250;
     switch (root)
       {
       case 'C':
+      case 'B#':
 	return 0;
       case 'C#':
-	return 1;
       case 'Db':
 	return 1;
       case 'D':
 	return 2;
       case 'D#':
-	return 3;
       case 'Eb':
 	return 3;
       case 'E':
+      case 'Fb':
 	return 4;
       case 'F':
+      case 'E#':
 	return 5;
       case 'F#':
-	return 6;
       case 'Gb':
 	return 6;
       case 'G':
 	return 7;
       case 'G#':
-	return 8;
       case 'Ab':
 	return 8;
       case 'A':
 	return 9;
       case 'A#':
-	return 10;
       case 'Bb':
 	return 10;
       case 'B':
+      case 'Cb':
 	return 11;
       default:
 	return 0;
@@ -890,6 +987,12 @@ height:250;
 
     var trackNr = cursor.staffIdx;
     var voiceNr = cursor.voice;
+
+    if (skipMeasure (cursor, measureMap))
+      {
+	return;
+      }
+
     if (staffMerge > 0)
       {
 	trackNr =[0, 0, 1, 1, 2, 2, 3, 3][cursor.staffIdx];
@@ -959,6 +1062,21 @@ height:250;
 		patternDict[cvind].push (cv);
 		patternDict[cvmod].push (vmodLen);
 		patternDict[gtind].push (gate);
+	      }
+	  }
+	if (syncPattern (cursor, measureMap))
+	  {
+	    var patternRemainder =
+	      Math.ceil (patternDict[cvind].length / 16) * 16 -
+	      patternDict[cvind].length;
+	    console.log (showPos (cursor, measureMap) +
+			 ": syncPattern stages " + patternDict[cvind].length +
+			 ":" + patternRemainder);
+	    for (var fill = 0; fill < patternRemainder; fill++)
+	      {
+		patternDict[cvind].push (0);
+		patternDict[cvmod].push (0);
+		patternDict[gtind].push (0);
 	      }
 	  }
       }
