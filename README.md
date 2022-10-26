@@ -68,6 +68,16 @@ A chord symbol is evaluated for each bar in the score. The root note is stored i
 In gate A of track 4 a trigger is sent at the beginning of each new bar.
 In gate B of track 4 a 4 PPQ clock signal is output for synchronization with other modules.
 
+## Skip Measures
+
+When exporting existing scores and / or for creating interesting collages, it is sometimes helpful to exclude parts of the score from the export. For this purpose it is now possible to simply attach a staff text to the first bar of the corresponding section, specifying the staves and the number of bars to skip. For example, a comment `usta skip 2:6,4:9` skips 6 bars of note line two and 9 bars of note line 4, each starting from the bar in which the note is attached. The counting of the staves starts at 1.
+
+## Sync Measures
+
+When exporting multiple staves in condensed mode, the synchronization of bars within the pattern is usually lost. The bars of the different staves start in different stages in the middle of the pattern.
+
+In order to create the possibility here of starting the staves synchronously at certain bars, a staff text can simply be appended to the corresponding bar, in which the staves to be synchronized are specified. For example, the comment `usta sync 1,3` ensures that the first notes of lines one and three are mapped to the first stage of a pattern. If there are still free stages in a pattern, a corresponding number of empty stages will be inserted.
+
 
 ## What next?
 
